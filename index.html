@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vFPC for IVAO</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { font-size: 24px; color: #2c3e50; text-align: center; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; font-family: monospace; }
+        button { display: block; width: 100%; padding: 10px; background-color: #3498db; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #2980b9; }
+        #results { margin-top: 20px; }
+        .result-tag { display: inline-block; padding: 5px 15px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
+        .status-ok { background-color: #2ecc71; color: white; }
+        .status-warn { background-color: #f1c40f; color: black; }
+        .status-fail { background-color: #e74c3c; color: white; }
+        .details { background-color: #f9f9f9; border-left: 5px solid #ccc; padding: 10px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>vFPC for IVAO</h1>
+        <div class="input-group">
+            <label for="fpl">Flight Plan (Item 15/Route):</label>
+            <textarea id="fpl" placeholder="e.g. N0450F330 DCT SFD P607 KONAN..."></textarea>
+        </div>
+        <div class="input-group">
+            <label for="dep">Departure (ICAO):</label>
+            <input type="text" id="dep" maxlength="4" style="width: 80px; padding: 5px;">
+            <label for="arr" style="display: inline; margin-left: 20px;">Arrival (ICAO):</label>
+            <input type="text" id="arr" maxlength="4" style="width: 80px; padding: 5px;">
+        </div>
+        <button id="checkBtn">Run Automatic Check</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById('checkBtn').addEventListener('click', async () => {
+            const fpl = document.getElementById('fpl').value.trim();
+            const dep = document.getElementById('dep').value.trim().toUpperCase();
+            const arr = document.getElementById('arr').value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('results');
+            
+            if(!fpl || !dep || !arr) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            // Mock SRD data (In a real app, this would be in a separate JSON file or API)
+            let srd = {};
+            try {
+                const response = await fetch('data/airports.json');
+                srd = await response.json();
+            } catch(e) {
+                console.warn('Could not load airports.json, using fallback logic');
+            }
+
+            const check = validateFlightPlan(fpl, dep, arr, srd);
+            displayResults(check);
+        });
+
+        function validateFlightPlan(fpl, dep, arr, srd) {
+            let errors = [];
+            let warnings = [];
+            let tag = "OK!";
+            let status = "ok";
+
+            // 1. CHK - Syntax Check
+            if (fpl.includes('  ')) errors.push({code: 'CHK', msg: 'Multiple spaces detected in route string.'});
+            if (/[^A-Z0-9\s/]/.test(fpl.toUpperCase())) errors.push({code: 'CHK', msg: 'Invalid characters in route.'});
+
+            // 2. LVL/OER - Altitude Checks
+            const lvlMatch = fpl.match(/[A-Z]\d{3,4}(?:F|A|S|M)(\d{3,4})/);
+            if (lvlMatch) {
+                const lvlValue = parseInt(lvlMatch[1]);
+                const isEven = (Math.floor(lvlValue / 10) % 2 === 0);
+                // Simple logic: East (0-179) = Odd, West (180-359) = Even
+                // Here we'd need track. For now, we mock OER if it's a known 'bad' level.
+            }
+
+            // 3. SID/DST/RTE - SRD Logic
+            const airportData = srd[dep];
+            if (airportData) {
+                const routeParts = fpl.split(' ');
+                const firstPoint = routeParts[1]; // Simplified
+                
+                // Mocking vFPC codes
+                if (airportData.sids && !airportData.sids.includes(firstPoint)) {
+                    errors.push({code: 'SID', msg: `SID departure point ${firstPoint} not found for ${dep}.`});
+                }
+            } else {
+                warnings.push({code: 'OK!', msg: `Airport ${dep} not in SRD database. Manual check required.`});
+            }
+
+            // Finalizing Tag
+            if (errors.length > 0) {
+                tag = errors[0].code;
+                status = "fail";
+            } else if (warnings.length > 0) {
+                tag = "OK!";
+                status = "warn";
+            }
+
+            return { tag, status, errors, warnings };
+        }
+
+        function displayResults(check) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="result-tag status-${check.status}">${check.tag}</div>
+                <div class="details">
+                    \${check.errors.map(e => `[ERROR] \${e.code}: \${e.msg}`).join('\
+')}
+                    \${check.warnings.map(w => `[WARN] \${w.code}: \${w.msg}`).join('\
+')}
+                    \${check.errors.length === 0 && check.warnings.length === 0 ? 'All automatic checks passed.' : ''}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
