@@ -1,1 +1,195 @@
-{"EGKK":{"icao":"EGKK","name":"London Gatwick","sids":[{"point":"SFD","aliases":[],"constraints":[{"dests":["EI","EG","LS","LF","EB","EH","ED","ET","LO","LK","EP","LOWW","LKPR","EPWA"],"nodests":[],"points":[],"nopoints":[],"route":["DCT SFD"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["G","Z"],"types":[],"banned":false,"alt":[]}],"alerts":[]},{"dests":[],"nodests":["EI","EG"],"points":[],"nopoints":[],"route":["DCT SFD"],"noroute":[],"min":60,"max":430,"dir":"EVEN","restrictions":[{"suffix":["G","Z"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"MID","aliases":[],"constraints":[{"dests":["EI","EG","LF","EB","EH","ED"],"nodests":[],"points":[],"nopoints":[],"route":["DCT MID"],"noroute":[],"min":60,"max":350,"dir":"ODD","restrictions":[{"suffix":["H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]},{"dests":[],"nodests":["EI","EG"],"points":[],"nopoints":[],"route":["DCT MID"],"noroute":[],"min":60,"max":350,"dir":"EVEN","restrictions":[{"suffix":["H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"BOGNA","aliases":[],"constraints":[{"dests":["LF","EB","EH","ED","LO","LS"],"nodests":[],"points":[],"nopoints":[],"route":["DCT BOGNA"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["E","F"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"HARDY","aliases":[],"constraints":[{"dests":["EI","EG"],"nodests":[],"points":[],"nopoints":[],"route":["DCT HARDY"],"noroute":[],"min":60,"max":370,"dir":"ODD","restrictions":[{"suffix":["F"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]}],"restrictions":[]},"EGLL":{"icao":"EGLL","name":"London Heathrow","sids":[{"point":"CPT","aliases":["CHK"],"constraints":[{"dests":["LF","EB","EH","ED","LS","LO","LK"],"nodests":[],"points":[],"nopoints":[],"route":["DCT CPT"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["F","G","H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]},{"dests":[],"nodests":["LF","EB"],"points":[],"nopoints":[],"route":["DCT CPT"],"noroute":[],"min":60,"max":430,"dir":"EVEN","restrictions":[{"suffix":["F","G","H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"BPK","aliases":[],"constraints":[{"dests":["EI","EG","EF","EE","EV","EY","EK"],"nodests":[],"points":[],"nopoints":[],"route":["DCT BPK"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["G","H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"GOGSI","aliases":[],"constraints":[{"dests":["LF","EB","EH","ED","LS","LO"],"nodests":[],"points":[],"nopoints":[],"route":["DCT GOGSI"],"noroute":[],"min":80,"max":430,"dir":"ODD","restrictions":[{"suffix":["E","F","G"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"MID","aliases":[],"constraints":[{"dests":["EI","EG","EF","EE"],"nodests":[],"points":[],"nopoints":[],"route":["DCT MID"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["G","H"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]}],"restrictions":[]},"EGBB":{"icao":"EGBB","name":"Birmingham","sids":[{"point":"CHASE","aliases":[],"constraints":[{"dests":["LF","EB","EH","ED","LS","LO","LK"],"nodests":[],"points":[],"nopoints":[],"route":["DCT CHASE"],"noroute":[],"min":60,"max":430,"dir":"ODD","restrictions":[{"suffix":["H","J"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"COWLY","aliases":[],"constraints":[{"dests":["EI","EG"],"nodests":[],"points":[],"nopoints":[],"route":["DCT COWLY"],"noroute":[],"min":60,"max":390,"dir":"ODD","restrictions":[{"suffix":["E","F"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"MCT","aliases":[],"constraints":[{"dests":["EE","EF","EV","EY","EK","LK","EP"],"nodests":[],"points":[],"nopoints":[],"route":["DCT MCT"],"noroute":[],"min":60,"max":430,"dir":"EVEN","restrictions":[{"suffix":["E","F","G"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]}],"restrictions":[]},"EGPH":{"icao":"EGPH","name":"Edinburgh","sids":[{"point":"TLA","aliases":[],"constraints":[{"dests":["EG","LF","EB","EH","ED"],"nodests":[],"points":[],"nopoints":[],"route":["DCT TLA"],"noroute":[],"min":60,"max":390,"dir":"ODD","restrictions":[{"suffix":["G","H"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]},{"point":"GOSAM","aliases":[],"constraints":[{"dests":["EI"],"nodests":[],"points":[],"nopoints":[],"route":["DCT GOSAM"],"noroute":[],"min":60,"max":370,"dir":"ODD","restrictions":[{"suffix":["E","F"],"types":[],"banned":false,"alt":[]}],"alerts":[]}]}],"restrictions":[]}}
+{
+  "EGKK": {
+    "icao": "EGKK",
+    "name": "London Gatwick",
+    "sids": [
+      {
+        "point": "SFD",
+        "constraints": [
+          {
+            "dests": ["EI", "EG", "LS", "LF", "EB", "EH", "ED", "ET", "LO", "LK", "EP", "LOWW", "LKPR", "EPWA"],
+            "dir": "ODD",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT SFD"]
+          },
+          {
+            "dests": [],
+            "nodests": ["EI", "EG"],
+            "dir": "EVEN",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT SFD"]
+          }
+        ]
+      },
+      {
+        "point": "MID",
+        "constraints": [
+          {
+            "dests": ["EI", "EG", "LF", "EB", "EH", "ED"],
+            "dir": "ODD",
+            "max": 350,
+            "min": 60,
+            "route": ["DCT MID"]
+          },
+          {
+            "dests": [],
+            "nodests": ["EI", "EG"],
+            "dir": "EVEN",
+            "max": 350,
+            "min": 60,
+            "route": ["DCT MID"]
+          }
+        ]
+      }
+    ]
+  },
+  "EGLL": {
+    "icao": "EGLL",
+    "name": "London Heathrow",
+    "sids": [
+      {
+        "point": "CPT",
+        "constraints": [
+          {
+            "dests": ["LF", "EB", "EH", "ED", "LS", "LO", "LK"],
+            "dir": "ODD",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT CPT"]
+          },
+          {
+            "dests": [],
+            "nodests": ["LF", "EB"],
+            "dir": "EVEN",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT CPT"]
+          }
+        ]
+      },
+      {
+        "point": "BPK",
+        "constraints": [
+          {
+            "dests": ["EI", "EG", "EF", "EE", "EV", "EY", "EK"],
+            "dir": "ODD",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT BPK"]
+          }
+        ]
+      },
+      {
+        "point": "MID",
+        "constraints": [
+          {
+            "dests": ["EI", "EG", "EF", "EE"],
+            "dir": "ODD",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT MID"]
+          }
+        ]
+      }
+    ]
+  },
+  "EGAA": {
+    "icao": "EGAA",
+    "name": "Belfast International",
+    "sids": [
+      {
+        "point": "BEL",
+        "constraints": [
+          {
+            "dests": ["EGTE"],
+            "dir": "ODD",
+            "max": 285,
+            "min": 245,
+            "route": ["BELZU L10 DUFFY L15 PEPOD Q38 MALUD L15 RISLA N862 KARNO ALHUP WEVBE ABWIV N862 PACSE N92 EXMOR TIVER"]
+          },
+          {
+            "dests": ["EIDW"],
+            "dir": "EVEN",
+            "max": 245,
+            "min": 245,
+            "route": ["BELZU NUMPI P620 NIMAT"]
+          }
+        ]
+      }
+    ]
+  },
+  "EGBB": {
+    "icao": "EGBB",
+    "name": "Birmingham",
+    "sids": [
+      {
+        "point": "CHASE",
+        "constraints": [
+          {
+            "dests": ["LF", "EB", "EH", "ED", "LS", "LO", "LK"],
+            "dir": "ODD",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT CHASE"]
+          }
+        ]
+      },
+      {
+        "point": "COWLY",
+        "constraints": [
+          {
+            "dests": ["EI", "EG"],
+            "dir": "ODD",
+            "max": 390,
+            "min": 60,
+            "route": ["DCT COWLY"]
+          }
+        ]
+      },
+      {
+        "point": "MCT",
+        "constraints": [
+          {
+            "dests": ["EE", "EF", "EV", "EY", "EK", "LK", "EP"],
+            "dir": "EVEN",
+            "max": 430,
+            "min": 60,
+            "route": ["DCT MCT"]
+          }
+        ]
+      }
+    ]
+  },
+  "EGPH": {
+    "icao": "EGPH",
+    "name": "Edinburgh",
+    "sids": [
+      {
+        "point": "TLA",
+        "constraints": [
+          {
+            "dests": ["EG", "LF", "EB", "EH", "ED"],
+            "dir": "ODD",
+            "max": 390,
+            "min": 60,
+            "route": ["DCT TLA"]
+          }
+        ]
+      },
+      {
+        "point": "GOSAM",
+        "constraints": [
+          {
+            "dests": ["EI"],
+            "dir": "ODD",
+            "max": 370,
+            "min": 60,
+            "route": ["DCT GOSAM"]
+          }
+        ]
+      }
+    ]
+  }
+}
