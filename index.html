@@ -56,7 +56,7 @@
 <body>
 <header>
   <div class="group">
-    <span class="label">IVAO VFPC-style Checker</span>
+    <span class=\"label\">IVAO VFPC-style Checker</span>
   </div>
 
   <div class="group">
@@ -75,8 +75,7 @@
 
 <div style="padding:10px;">
   <div class="small">
-    Uses IVAO Whazzup JSON to check departures from your ATC field (via CID) or a given ICAO.
-    Applies E/W vs N/S semi-circular rules by country and asks your backend for route suggestions. [web:13][web:16][web:44][web:67]
+    Uses IVAO Whazzup JSON to check departures. Applies E/W vs N/S rules and validates against SRD data.
   </div>
 
   <table id="resultsTable">
@@ -105,10 +104,20 @@
 </div>
 
 <script>
-const WHAZZUP_URL = "https://api.ivao.aero/v2/tracker/whazzup"; // IVAO Whazzup v2 JSON [web:16][web:21]
-const BACKEND_URL = "http://localhost:5000"; // your Flask backend
+const WHAZZUP_URL = "https://api.ivao.aero/v2/tracker/whazzup";
+const AIRPORTS_URL = "data/airports.json";
 
-// ICAO prefixes using N/S orientation. Extend as needed. [web:23][web:32]
+let SRD_DATA = {};
+
+async function loadSrd() {
+  try {
+    const res = await fetch(AIRPORTS_URL);
+    SRD_DATA = await res.json();
+  } catch (e) {
+    console.error("Failed to load SRD data", e);
+  }
+}
+
 const NS_PREFIXES = ["LI","LF","LP","LE","NZ"];
 
 function usesNorthSouthRule(icao) {
@@ -138,6 +147,8 @@ function setStatus(msg) {
 async function runCheck(cid, manualIcao) {
   setStatus("Fetching Whazzup...");
   clearTable();
+  if (Object.keys(SRD_DATA).length === 0) await loadSrd();
+
   try {
     const res = await fetch(WHAZZUP_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -147,7 +158,6 @@ async function runCheck(cid, manualIcao) {
 
     if (manualIcao) {
       airport = manualIcao.toUpperCase();
-      setStatus("Using manual ICAO " + airport + ". Getting departures...");
     } else if (cid) {
       const atc = findAtcForCid(data, cid);
       if (!atc) {
@@ -155,13 +165,10 @@ async function runCheck(cid, manualIcao) {
         return;
       }
       airport = deriveAirportFromCallsign(atc.callsign);
-      if (!airport) {
-        setStatus("Could not derive airport from " + atc.callsign + ".");
-        return;
-      }
-      setStatus("Found ATC " + atc.callsign + " → airport " + airport + ". Getting departures...");
-    } else {
-      setStatus("Enter a CID or an ICAO.");
+    }
+
+    if (!airport) {
+      setStatus("Could not identify airport.");
       return;
     }
 
@@ -173,10 +180,7 @@ async function runCheck(cid, manualIcao) {
 
     const nsRule = usesNorthSouthRule(airport);
     fillTable(airport, departures, nsRule);
-    setStatus(
-      "Found " + departures.length + " departures from " + airport +
-      " (" + (nsRule ? "N/S" : "E/W") + " rule)."
-    );
+    setStatus("Found " + departures.length + " departures from " + airport + (nsRule ? " (N/S)" : " (E/W)"));
   } catch (e) {
     console.error(e);
     setStatus("Error: " + e.message);
@@ -196,58 +200,53 @@ function findAtcForCid(data, cid) {
 
 function deriveAirportFromCallsign(callsign) {
   if (!callsign) return null;
-  const up = callsign.toUpperCase();
-  const parts = up.split("_");
-  if (!parts.length) return null;
-  const candidate = parts[0];
-  if (candidate.length >= 4) return candidate.substring(0, 4);
+  const parts = callsign.toUpperCase().split("_");
+  if (parts[0].length >= 4) return parts[0].substring(0, 4);
   return null;
 }
 
 function findDeparturesFromAirport(data, icao) {
   const pilots = (data.clients && data.clients.pilots) || [];
   const upIcao = icao.toUpperCase();
-  return pilots.filter(p => {
-    const fp = p.flightPlan;
-    if (!fp) return false;
-    if (!fp.departureId || fp.departureId.toUpperCase() !== upIcao) return false;
-    const departed = (fp.actualDepartureTime && fp.actualDepartureTime > 0) ||
-                     (p.lastTrack && p.lastTrack.groundSpeed && p.lastTrack.groundSpeed > 30);
-    return departed;
-  });
-}
-
-// Simple IVAO-style route sanity check. [web:44][web:47][web:67]
-function isRouteValid(route, flightRules) {
-  if (!route) return false;
-  const trimmed = route.trim();
-  if (trimmed.length < 3) return false;
-  if (flightRules && flightRules.toUpperCase() === "I") {
-    const tokens = trimmed.toUpperCase().split(/\\s+/);
-    const hasStructure = tokens.some(t => /[A-Z]\\d{1,3}/.test(t));
-    if (!hasStructure) return false;
-  }
-  return true;
+  return pilots.filter(p => p.flightPlan && p.flightPlan.departureId.toUpperCase() === upIcao);
 }
 
 function parseFlightLevel(rawLevel) {
   if (!rawLevel) return null;
-  const m = String(rawLevel).match(/\\d+/);
-  if (!m) return null;
-  const val = parseInt(m[0], 10);
-  if (val < 10) return null;
-  return val;
+  const m = String(rawLevel).match(/\d+/);
+  return m ? parseInt(m[0], 10) : null;
 }
 
-// E/W vs N/S semi-circular rule. [web:23][web:32]
+function validateRouteAndSID(dep, route, dest, fl) {
+  const apt = SRD_DATA[dep.toUpperCase()];
+  if (!apt) return { ok: true, msg: "SRD check skipped (No data)" };
+
+  const routeUpper = route.toUpperCase();
+  const firstPtMatch = routeUpper.match(/(?:DCT\s+)?([A-Z0-9]{3,5})/);
+  const firstPt = firstPtMatch ? firstPtMatch[1] : null;
+
+  if (!firstPt) return { ok: false, msg: "Route syntax error (no first waypoint)" };
+
+  const sid = apt.sids.find(s => s.point.toUpperCase() === firstPt);
+  if (!sid) return { ok: false, msg: "Invalid SID/Point: " + firstPt };
+
+  const constraint = sid.constraints[0];
+  const destMatch = constraint.dests.some(d => dest.toUpperCase().startsWith(d));
+  if (constraint.dests.length > 0 && !destMatch) return { ok: false, msg: "Destination not valid for " + firstPt };
+
+  if (fl != null) {
+    if (fl < constraint.min || fl > constraint.max) return { ok: false, msg: "FL outside limits (FL" + constraint.min + "-FL" + constraint.max + ")" };
+    const isOdd = (Math.floor(fl / 10) % 2) === 1;
+    if (constraint.dir === "ODD" && !isOdd) return { ok: false, msg: "Wrong parity: should be ODD" };
+    if (constraint.dir === "EVEN" && isOdd) return { ok: false, msg: "Wrong parity: should be EVEN" };
+  }
+
+  return { ok: true, msg: "All OK" };
+}
+
 function isLevelCorrectForTrack(level, trackDeg, useNorthSouth) {
-  if (level == null) return true;
-  if (level < 35) return true;
-  if (trackDeg == null || isNaN(trackDeg)) return true;
-
-  const main = Math.floor(level / 10);
-  const isOdd = (main % 2) === 1;
-
+  if (level == null || level < 35 || trackDeg == null || isNaN(trackDeg)) return true;
+  const isOdd = (Math.floor(level / 10) % 2) === 1;
   if (useNorthSouth) {
     const oddSector = trackDeg >= 90 && trackDeg <= 269;
     return oddSector ? isOdd : !isOdd;
@@ -255,22 +254,6 @@ function isLevelCorrectForTrack(level, trackDeg, useNorthSouth) {
     const eastbound = trackDeg >= 0 && trackDeg <= 179;
     return eastbound ? isOdd : !isOdd;
   }
-}
-
-function suggestCorrectFL(level, trackDeg, useNorthSouth) {
-  if (level == null || trackDeg == null || isNaN(trackDeg)) return null;
-  const current = Math.floor(level / 5) * 5;
-  const candidates = [];
-  for (let delta = -10; delta <= 10; delta += 5) {
-    const fl = current + delta;
-    if (fl < 35 || fl > 450) continue;
-    if (isLevelCorrectForTrack(fl, trackDeg, useNorthSouth)) {
-      candidates.push(fl);
-    }
-  }
-  if (!candidates.length) return null;
-  candidates.sort((a,b) => Math.abs(a - level) - Math.abs(b - level));
-  return candidates[0];
 }
 
 function fillTable(airport, departures, nsRule) {
@@ -281,104 +264,52 @@ function fillTable(airport, departures, nsRule) {
     const fl = parseFlightLevel(fp.level);
     const track = p.lastTrack ? p.lastTrack.heading : null;
 
-    const routeOk = isRouteValid(route, fp.flightRules);
-    const levelOk = isLevelCorrectForTrack(fl, track, nsRule);
+    const srdResult = validateRouteAndSID(airport, route, fp.arrivalId || "", fl);
+    const trackOk = isLevelCorrectForTrack(fl, track, nsRule);
 
-    let statusText, statusClass, explanation;
+    let statusText = srdResult.msg;
+    let statusClass = srdResult.ok ? "green" : "red";
+    let explanation = srdResult.msg;
 
-    if (!routeOk) {
-      statusText = "Route invalid";
-      statusClass = "red";
-      explanation =
-        "The route field is too simple or missing structure.\\n" +
-        "For IFR flights, include at least one airway or SID/STAR " +
-        "(not only DCT or a single fix).";
-    } else if (!levelOk) {
-      statusText = "Wrong FL (semi-circular)";
+    if (srdResult.ok && !trackOk) {
+      statusText = "Wrong FL (track)";
       statusClass = "orange";
-      const ruleType = nsRule ? "North/South" : "East/West";
-      const suggested = suggestCorrectFL(fl, track, nsRule);
-      const baseInfo =
-        "Semi-circular rule here uses " + ruleType + " orientation.\\n" +
-        "Current track ≈ " + (track != null ? Math.round(track) + "°" : "unknown") +
-        ", filed level FL" + (fl != null ? fl : "?") + " has the wrong parity.";
-      const suggText = suggested
-        ? "\\nSuggested nearby correct level: FL" + suggested + "."
-        : "";
-      explanation = baseInfo + suggText;
-    } else {
-      statusText = "All OK";
-      statusClass = "green";
-      explanation = "";
+      explanation = "Level parity doesn't match track direction.";
     }
 
     const tr = document.createElement('tr');
     tr.className = statusClass;
     tr.innerHTML = `
-      <td>${escapeHtml(p.callsign || "")}</td>
-      <td>${escapeHtml(fp.departureId || "")}</td>
-      <td>${escapeHtml(fp.arrivalId || "")}</td>
-      <td title="${escapeHtml(route)}">${escapeHtml(shorten(route, 60))}</td>
-      <td>${fp.level || ""}</td>
-      <td>${track != null ? Math.round(track) + "°" : ""}</td>
-      <td>${statusText}</td>
+      <td>\${escapeHtml(p.callsign || "")}</td>
+      <td>\${escapeHtml(fp.departureId || "")}</td>
+      <td>\${escapeHtml(fp.arrivalId || "")}</td>
+      <td title="\${escapeHtml(route)}">\${escapeHtml(shorten(route, 60))}</td>
+      <td>\${fp.level || ""}</td>
+      <td>\${track != null ? Math.round(track) + "°" : ""}</td>
+      <td>\${statusText}</td>
     `;
-
-    if (statusClass === "red" || statusClass === "orange") {
+    if (statusClass !== "green") {
       tr.style.cursor = "pointer";
-      tr.addEventListener('click', () => {
-        showHint(p, fp, statusText, explanation, nsRule);
-      });
+      tr.onclick = () => showHint(p.callsign, statusText, explanation);
     }
-
     tbody.appendChild(tr);
   });
 }
 
-async function showHint(pilot, fp, statusText, explanation, nsRule) {
-  const callsign = pilot.callsign || "";
-  document.getElementById('hintTitle').textContent =
-    callsign ? (callsign + " – " + statusText) : statusText;
-  document.getElementById('hintMain').textContent =
-    statusText === "Route invalid"
-      ? "Route needs adjustment."
-      : "Cruise level / FL parity needs adjustment.";
-  document.getElementById('hintDetails').textContent = explanation;
-
-  if (statusText === "Route invalid" && BACKEND_URL) {
-    const dep = (fp.departureId || "").toUpperCase();
-    const dest = (fp.arrivalId || "").toUpperCase();
-    const fl = fp.level || "";
-    if (dep && dest) {
-      try {
-        const url = `${BACKEND_URL}/api/route-suggestion?dep=${encodeURIComponent(dep)}&dest=${encodeURIComponent(dest)}&fl=${encodeURIComponent(fl)}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.suggested_route) {
-            document.getElementById('hintDetails').textContent +=
-              "\\n\\nSuggested route (backend):\\n" + data.suggested_route;
-          }
-        }
-      } catch (e) {
-        console.error("Route suggestion error:", e);
-      }
-    }
-  }
-
+function showHint(callsign, title, details) {
+  document.getElementById('hintTitle').textContent = callsign + " - " + title;
+  document.getElementById('hintMain').textContent = title;
+  document.getElementById('hintDetails').textContent = details;
   document.getElementById('hintOverlay').style.display = "flex";
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[s]));
+  return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
 }
 
 function shorten(str, max) {
   str = String(str);
-  if (str.length <= max) return str;
-  return str.slice(0, max - 3) + "...";
+  return str.length <= max ? str : str.slice(0, max - 3) + "...";
 }
 </script>
 </body>
